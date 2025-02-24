@@ -1,67 +1,78 @@
-local function isMatureCrop()
-    local success, data = turtle.inspectDown()
-    if success and data.name:match("mysticalagriculture") then
-        return data.state.age == 7 -- Vérifie si la culture est mature
+-- Paramètres du champ (modifiable)
+local largeur = 5  -- Nombre de colonnes
+local longueur = 5 -- Nombre de lignes
+
+-- Vérifie si la plante est mature (âge = 7)
+local function estMature()
+    local _, data = turtle.inspectDown()
+    if data and data.state and data.state.age == 7 then
+        return true
     end
     return false
 end
 
-local function plantSeed()
-    for slot = 1, 16 do
-        local item = turtle.getItemDetail(slot)
-        if item and item.name:match("mysticalagriculture:seeds") then
-            turtle.select(slot)
-            return turtle.placeDown()
-        end
-    end
-    return false
-end
-
-local function harvestAndReplant()
-    if isMatureCrop() then
+-- Récolte et replante
+local function recolterEtReplanter()
+    if estMature() then
         turtle.digDown()
-        plantSeed()
-    end
-end
-
-local function moveForward()
-    while not turtle.forward() do
-        turtle.dig()
-        sleep(0.5)
-    end
-end
-
-local function turnAround()
-    turtle.turnRight()
-    moveForward()
-    turtle.turnRight()
-end
-
-local function farmField(width, height)
-    for row = 1, height do
-        for col = 1, width - 1 do
-            harvestAndReplant()
-            moveForward()
-        end
-        harvestAndReplant()
-        if row < height then
-            if row % 2 == 1 then
-                turtle.turnRight()
-                moveForward()
-                turtle.turnRight()
-            else
-                turtle.turnLeft()
-                moveForward()
-                turtle.turnLeft()
+        turtle.suckDown()
+        for i = 1, 16 do
+            local detail = turtle.getItemDetail(i)
+            if detail and detail.name:match("seeds") then
+                turtle.select(i)
+                turtle.placeDown()
+                break
             end
         end
     end
 end
 
-print("Entrez la largeur du champ:")
-local width = tonumber(read())
-print("Entrez la hauteur du champ:")
-local height = tonumber(read())
-print("Début de l'automatisation de la ferme Mystical Agriculture...")
-farmField(width, height)
-print("Ferme terminée !")
+-- Dépose les objets dans un coffre (devant)
+local function viderInventaire()
+    turtle.turnRight()
+    turtle.turnRight()
+    for i = 1, 16 do
+        turtle.select(i)
+        turtle.drop()
+    end
+    turtle.turnRight()
+    turtle.turnRight()
+end
+
+-- Vérifie si l'inventaire est plein
+local function inventairePlein()
+    for i = 1, 16 do
+        if turtle.getItemCount(i) == 0 then
+            return false
+        end
+    end
+    return true
+end
+
+-- Récolte le champ
+local function recolterChamp()
+    for ligne = 1, longueur do
+        for col = 1, largeur - 1 do
+            recolterEtReplanter()
+            turtle.forward()
+        end
+        if ligne ~= longueur then
+            if ligne % 2 == 1 then
+                turtle.turnRight()
+                turtle.forward()
+                turtle.turnRight()
+            else
+                turtle.turnLeft()
+                turtle.forward()
+                turtle.turnLeft()
+            end
+        end
+        if inventairePlein() then
+            viderInventaire()
+        end
+    end
+end
+
+-- Lancer le programme
+recolterChamp()
+print("Récolte terminée !")
